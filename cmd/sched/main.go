@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-
 	. "github.com/HajagosNorbert/SZTE-os-scheduling/internal/simulation"
 )
 
@@ -15,12 +14,12 @@ func main() {
 
 func chooseAlg() func([]Proc) SimResult {
 	alg := flag.String("a", "fcfs", "Choose scheduling algorithm. possible values: \n\"fcfs\" - First Come First Serve \n\"sjr\" - Shortest Job First\n")
-    flag.Parse()
+	flag.Parse()
 	switch *alg {
 	case "fcfs":
 		return FirstComeFirstServe
 	case "sjr":
-        return SortestJobFirst
+		return SortestJobFirst
 	default:
 		return FirstComeFirstServe
 	}

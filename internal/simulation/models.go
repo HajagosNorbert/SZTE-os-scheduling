@@ -6,7 +6,7 @@ type IoOp struct {
 }
 
 type Proc struct {
-	startAt   int
+	spawnedAt   int
 	ticksLeft int
 	state     ProcState
 	ioOps     []IoOp
@@ -29,7 +29,7 @@ type SimResult struct {
 }
 
 type ProcResult struct {
-	interruptCount int
+	ctxSwitchCount int
 	idleTicks      int
 	totalTicks     int
 }
