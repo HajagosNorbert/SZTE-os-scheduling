@@ -5,12 +5,13 @@ import (
 )
 
 func FirstComeFirstServe(procs []Proc) SimResult {
-	tick := 0
-	var ioTasksRunning []IoTaskRunning
 	var proc *Proc
+	var ioTasksRunning []IoTaskRunning
+	tick := 0
 	procResults := make([]ProcResult, len(procs))
 	result := SimResult{procResults: procResults}
 	readyUpProcs := readyUpProcsFactory()
+
 	sort.Slice(procs, func(i, j int) bool {
 		return procs[i].spawnedAt < procs[j].spawnedAt
 	})
@@ -49,11 +50,11 @@ func FirstComeFirstServe(procs []Proc) SimResult {
 		tickIoOps(ioTasksRunning)
 		//check for blocking
 		ioOpToStart, isIoOpReady := proc.getReadyIoOp()
+		taskToStart := IoTaskRunning{ioOp: ioOpToStart, ownerProc: proc}
 		if isIoOpReady {
-			ioTasksRunning = append(ioTasksRunning, IoTaskRunning{ioOp: ioOpToStart, ownerProc: proc})
+			ioTasksRunning = append(ioTasksRunning, taskToStart)
 			proc.state = Blocked
 		}
-		// do the work (CPU or initiating IO)
 		proc.ticksLeft--
 
 		// check if terminated
@@ -61,7 +62,6 @@ func FirstComeFirstServe(procs []Proc) SimResult {
 			proc.state = Terminated
 		}
 
-		//at the end
 		tick++
 	}
 }
