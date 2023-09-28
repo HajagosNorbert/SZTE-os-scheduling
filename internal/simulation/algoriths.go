@@ -6,12 +6,11 @@ import (
 
 func FirstComeFirstServe(procs []Proc) SimResult {
 	tick := 0
-	nextNewProc := 0
 	var ioTasksRunning []IoTaskRunning
-	var proc Proc
+	var proc *Proc
 	procResults := make([]ProcResult, len(procs))
 	result := SimResult{procResults: procResults}
-
+	readyUpProcs := readyUpProcsFactory()
 	sort.Slice(procs, func(i, j int) bool {
 		return procs[i].spawnedAt < procs[j].spawnedAt
 	})
@@ -19,47 +18,39 @@ func FirstComeFirstServe(procs []Proc) SimResult {
 	for {
 		if allProcsTerminated(procs) {
 			result.totalTicks = tick
-			for i, pRes := range procResults{
-				pRes.totalTicks = procs[i].ticksDone()
-				pRes.idleTicks = procs[i].
+			for i := range procResults {
+				procResults[i].totalTicks = procs[i].ticksDone()
 			}
 			return result
 		}
 
-		// change state where needed New -> Ready
-		for i, p := range procs[nextNewProc:] {
-			if p.state == New && p.spawnedAt <= tick {
-				p.state = Ready
-			} else {
-				// there will be no new proc which spawned earlyer, since they are sorted by spawnedAt
-				// we save where we stopped
-				nextNewProc = i
-				break
-			}
-		}
+		procs = readyUpProcs(procs, tick)
 
-		// pick next ready proc to run
-		idx, found := firstReady(procs)
-		if !found {
-			tick++
-			tickIoOps(ioTasksRunning)
-			result.idleTicks++
-			continue //??
+		if proc == nil || proc.state != Running {
+			// pick next ready proc to run
+			idx, found := firstReady(procs)
+			if !found {
+				tick++
+				tickIoOps(ioTasksRunning)
+				result.idleTicks++
+				continue
+			}
+			proc = &procs[idx]
+			proc.state = Running
 		}
-		proc = procs[idx]
-		proc.state = Running
 
 		// increment idleTicks on Ready procs
 		for i, p := range procs {
 			if p.state == Ready {
-				result.procResults[i].idleTicks++ 
+				result.procResults[i].idleTicks++
 			}
 		}
 
+		tickIoOps(ioTasksRunning)
 		//check for blocking
 		ioOpToStart, isIoOpReady := proc.getReadyIoOp()
 		if isIoOpReady {
-			ioTasksRunning = append(ioTasksRunning, IoTaskRunning{ioOp: &ioOpToStart, ownerProc: &proc})
+			ioTasksRunning = append(ioTasksRunning, IoTaskRunning{ioOp: ioOpToStart, ownerProc: proc})
 			proc.state = Blocked
 		}
 		// do the work (CPU or initiating IO)
@@ -72,12 +63,12 @@ func FirstComeFirstServe(procs []Proc) SimResult {
 
 		//at the end
 		tick++
-		tickIoOps(ioTasksRunning)
 	}
 }
 
 func tickIoOps(ioTasks []IoTaskRunning) {
-	for i, task := range ioTasks {
+	for i := range ioTasks {
+		task := &ioTasks[i]
 		task.ioOp.ticksLeft--
 		if task.ioOp.ticksLeft == 0 {
 			if task.ownerProc.ticksLeft > 0 {
@@ -89,7 +80,29 @@ func tickIoOps(ioTasks []IoTaskRunning) {
 		}
 	}
 }
+func readyUpProcsFactory() func([]Proc, int) []Proc {
+	nextNewProc := 0
+
+	return func(procs []Proc, tick int) []Proc {
+		// change state where needed New -> Ready
+		for i := range procs[nextNewProc:] {
+			p := &procs[nextNewProc+i]
+			if p.state == New && p.spawnedAt <= tick {
+				p.state = Ready
+			} else {
+				// there will be no new proc which spawned earlyer, since they are sorted by spawnedAt
+				// we save where we stopped
+				nextNewProc = i
+				break
+			}
+		}
+		return procs
+	}
+}
 func removeTaskAt(tasks []IoTaskRunning, i int) []IoTaskRunning {
+	if len(tasks) == 0 {
+
+	}
 	tasks[i] = tasks[len(tasks)-1]
 	return tasks[:len(tasks)-1]
 }
@@ -107,13 +120,14 @@ func (p Proc) ticksDone() int {
 	return p.totalTicks - p.ticksLeft
 }
 
-func (p *Proc) getReadyIoOp() (IoOp, bool) {
-	for _, ioOp := range p.ioOps {
-		if ioOp.ticksLeft > 0 && ioOp.startsAfter >= p.ticksDone() {
+func (p *Proc) getReadyIoOp() (*IoOp, bool) {
+	for i := range p.ioOps {
+		ioOp := &p.ioOps[i]
+		if ioOp.ticksLeft > 0 && ioOp.startsAfter <= p.ticksDone() {
 			return ioOp, true
 		}
 	}
-	return IoOp{}, false
+	return &IoOp{}, false
 }
 
 func firstReady(procs []Proc) (int, bool) {
