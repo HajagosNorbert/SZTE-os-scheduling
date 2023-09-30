@@ -10,8 +10,8 @@ type IoOp struct {
 	ticksLeft   int
 }
 
-//There needs to be at least as meany ticksLeft as len(ioOps), since starting an ioOp takes 1 tick.
-//ticksLeft and totalTicks should have the same value when instantiated
+// There needs to be at least as meany ticksLeft as len(ioOps), since starting an ioOp takes 1 tick.
+// ticksLeft and totalTicks should have the same value when instantiated
 type Proc struct {
 	//zero based
 	spawnedAt  int
@@ -37,7 +37,15 @@ const (
 	Terminated
 )
 
+type Algorithm = string
+
+const (
+	AlgFcfs Algorithm = "fcfs"
+	AlgSjr  Algorithm = "sjr"
+)
+
 type SimResult struct {
+	algName     Algorithm
 	idleTicks   int
 	totalTicks  int
 	procResults []ProcResult
