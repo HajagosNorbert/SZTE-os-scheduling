@@ -11,7 +11,12 @@ I implement the
  - methods to generate the processes probablistically
  - Reporting system that gives insights into the result of the simulation
 
-If you have the Go toolchain, run 
+If you have the Go toolchain, see available algorithms with:
+```sh
+go run cmd/sched/main.go --help
+```
+
+Or run the simulation with the default algorithm with:
 ```sh
 go run cmd/sched/main.go
 ```
