@@ -1,10 +1,12 @@
 package simulation
 
 import (
+	"fmt"
 	"sort"
 )
 
 func FirstComeFirstServe(procs []Proc) SimResult {
+	procIdx := -1
 	var proc *Proc
 	var ioTasksRunning []IoTaskRunning
 	tick := 0
@@ -24,21 +26,28 @@ func FirstComeFirstServe(procs []Proc) SimResult {
 			}
 			return result
 		}
-
+		fmt.Printf("")
+		// fmt.Printf("%+v\n", procs)
 		procs = readyUpProcs(procs, tick)
 
-		if proc == nil || proc.state != Running {
-			// pick next ready proc to run
-			idx, found := firstReady(procs)
-			if !found {
-				tick++
-				tickIoOps(ioTasksRunning)
-				result.idleTicks++
-				continue
-			}
-			proc = &procs[idx]
-			proc.state = Running
+		// pick next ready proc to run
+		choosenProcIdx, found := firstReady(procs, procIdx)
+		if !found {
+			tick++
+			tickIoOps(ioTasksRunning)
+			result.idleTicks++
+			continue
 		}
+
+		contextSwitchHappened := choosenProcIdx != procIdx && proc != nil && proc.state == Running
+		if contextSwitchHappened {
+			println("this")
+			proc.state = Ready
+			result.procResults[procIdx].ctxSwitchCount++
+		}
+		procIdx = choosenProcIdx
+		proc = &procs[choosenProcIdx]
+		proc.state = Running
 
 		// increment idleTicks on Ready procs
 		for i, p := range procs {
@@ -58,7 +67,7 @@ func FirstComeFirstServe(procs []Proc) SimResult {
 		proc.ticksLeft--
 
 		// check if terminated
-		if proc.ticksLeft == 0 && proc.state == Running {
+		if proc.ticksLeft <= 0 && proc.state == Running {
 			proc.state = Terminated
 		}
 
@@ -130,7 +139,12 @@ func (p *Proc) getReadyIoOp() (*IoOp, bool) {
 	return &IoOp{}, false
 }
 
-func firstReady(procs []Proc) (int, bool) {
+func firstReady(procs []Proc, currProcIdx int) (int, bool) {
+	isValidRunningProcIdx := 0 <= currProcIdx && currProcIdx < len(procs) && procs[currProcIdx].state == Running
+
+	if isValidRunningProcIdx {
+		return currProcIdx, true
+	}
 	for i, p := range procs {
 		if p.state == Ready {
 			return i, true
@@ -139,7 +153,7 @@ func firstReady(procs []Proc) (int, bool) {
 	return -1, false
 }
 
-// Olny considers ticksLeft of the proc, not the ioOps
+// Only considers ticksLeft of the proc, not the ioOps
 func SortestJobFirst(procs []Proc) SimResult {
 	procIdx := -1
 	var proc *Proc
@@ -209,12 +223,13 @@ func SortestJobFirst(procs []Proc) SimResult {
 }
 
 func shortestReadyProc(procs []Proc, currProcIdx int) (int, bool) {
+	invalidProcIdx := -1
 	var procIdx int
 	isValidRunningProcIdx := 0 <= currProcIdx && currProcIdx < len(procs) && procs[currProcIdx].state == Running
 
 	if isValidRunningProcIdx {
 		procIdx = currProcIdx
-	} else if firstReadyIdx, found := firstReady(procs); found {
+	} else if firstReadyIdx, found := firstReady(procs, invalidProcIdx); found {
 		procIdx = firstReadyIdx
 	} else {
 		return -1, false
