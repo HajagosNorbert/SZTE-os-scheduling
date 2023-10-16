@@ -14,7 +14,7 @@ func SimulateScheduling(procs []Proc, SchedAlg func([]Proc, int) (int, bool)) Si
 	readyUpProcs := readyUpProcsFactory()
 
 	sort.Slice(procs, func(i, j int) bool {
-		return procs[i].spawnedAt < procs[j].spawnedAt
+		return procs[i].SpawnedAt < procs[j].SpawnedAt
 	})
 
 	for {
@@ -32,24 +32,24 @@ func SimulateScheduling(procs []Proc, SchedAlg func([]Proc, int) (int, bool)) Si
 			continue
 		}
 
-		contextSwitchHappened := choosenProcIdx != procIdx && proc != nil && proc.state == Running
+		contextSwitchHappened := choosenProcIdx != procIdx && proc != nil && proc.State == Running
 		if contextSwitchHappened {
-			proc.state = Ready
+			proc.State = Ready
 			result.procResults[procIdx].ctxSwitchCount++
 		}
 
 		procIdx = choosenProcIdx
 		proc = &procs[choosenProcIdx]
-		proc.state = Running
+		proc.State = Running
 
 		tickForWaitingProcs(procs, &result)
 		tickForIoOps(ioTasksRunning)
 		proc, ioTasksRunning = blockProcOnIo(proc, ioTasksRunning)
-		proc.ticksLeft--
+		proc.TicksLeft--
 
-		procToBeTerminated := proc.ticksLeft <= 0 && proc.state == Running
+		procToBeTerminated := proc.TicksLeft <= 0 && proc.State == Running
 		if procToBeTerminated {
-			proc.state = Terminated
+			proc.State = Terminated
 		}
 
 		tick++
@@ -61,14 +61,14 @@ func blockProcOnIo(proc *Proc, ioTasksRunning []IoTaskRunning) (*Proc, []IoTaskR
 	taskToStart := IoTaskRunning{ioOp: ioOpToStart, ownerProc: proc}
 	if isIoOpReady {
 		ioTasksRunning = append(ioTasksRunning, taskToStart)
-		proc.state = Blocked
+		proc.State = Blocked
 	}
 	return proc, ioTasksRunning
 }
 
 func tickForWaitingProcs(procs []Proc, result *SimResult) {
 	for i, p := range procs {
-		if p.state == Ready {
+		if p.State == Ready {
 			result.procResults[i].idleTicks++
 		}
 	}
@@ -85,12 +85,12 @@ func endSimulation(procs []Proc, result SimResult, tick int) SimResult {
 func tickForIoOps(ioTasks []IoTaskRunning) {
 	for i := range ioTasks {
 		task := &ioTasks[i]
-		task.ioOp.ticksLeft--
-		if task.ioOp.ticksLeft == 0 {
-			if task.ownerProc.ticksLeft > 0 {
-				task.ownerProc.state = Ready
+		task.ioOp.TicksLeft--
+		if task.ioOp.TicksLeft == 0 {
+			if task.ownerProc.TicksLeft > 0 {
+				task.ownerProc.State = Ready
 			} else {
-				task.ownerProc.state = Terminated
+				task.ownerProc.State = Terminated
 			}
 			ioTasks = removeTaskAt(ioTasks, i)
 		}
@@ -103,8 +103,8 @@ func readyUpProcsFactory() func([]Proc, int) []Proc {
 		// change state where needed New -> Ready
 		for i := range procs[nextNewProc:] {
 			p := &procs[nextNewProc+i]
-			if p.state == New && p.spawnedAt <= tick {
-				p.state = Ready
+			if p.State == New && p.SpawnedAt <= tick {
+				p.State = Ready
 			} else {
 				// there will be no new proc which spawned earlyer, since they are sorted by spawnedAt
 				// we save where we stopped
@@ -125,7 +125,7 @@ func removeTaskAt(tasks []IoTaskRunning, i int) []IoTaskRunning {
 
 func allProcsTerminated(procs []Proc) bool {
 	for _, p := range procs {
-		if p.state != Terminated {
+		if p.State != Terminated {
 			return false
 		}
 	}
@@ -133,13 +133,13 @@ func allProcsTerminated(procs []Proc) bool {
 }
 
 func (p Proc) ticksDone() int {
-	return p.totalTicks - p.ticksLeft
+	return p.TotalTicks - p.TicksLeft
 }
 
 func (p *Proc) getReadyIoOp() (*IoOp, bool) {
-	for i := range p.ioOps {
-		ioOp := &p.ioOps[i]
-		if ioOp.ticksLeft > 0 && ioOp.startsAfter <= p.ticksDone() {
+	for i := range p.IoOps {
+		ioOp := &p.IoOps[i]
+		if ioOp.TicksLeft > 0 && ioOp.StartsAfter <= p.ticksDone() {
 			return ioOp, true
 		}
 	}

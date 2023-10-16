@@ -8,8 +8,8 @@ func ReadProcs() []Proc {
 	totalTicks1 := 9
 	totalTicks2 := 5
 	procs := []Proc{
-		{ticksLeft: totalTicks1, totalTicks: totalTicks1},
-		{ticksLeft: totalTicks2, totalTicks: totalTicks2, spawnedAt: 1},
+		{TicksLeft: totalTicks1, TotalTicks: totalTicks1},
+		{TicksLeft: totalTicks2, TotalTicks: totalTicks2, SpawnedAt: 1},
 	}
 	// firstIoOp := []IoOp{{startsAfter: 2, ticksLeft: 3}}
 	// secIoOp := []IoOp{{startsAfter: 2, ticksLeft: 2}}
@@ -21,3 +21,5 @@ func ReadProcs() []Proc {
 	// }
 	return procs
 }
+
+

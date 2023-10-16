@@ -6,7 +6,7 @@ func FirstComeFirstServe(procs []Proc, currProcIdx int) (int, bool) {
 		return currProcIdx, true
 	}
 	for i, p := range procs {
-		if p.state == Ready {
+		if p.State == Ready {
 			return i, true
 		}
 	}
@@ -26,12 +26,12 @@ func ShortestJobRemaining(procs []Proc, currProcIdx int) (int, bool) {
 		return -1, false
 	}
 
-	minTicksLeft := procs[procIdx].ticksLeft
+	minTicksLeft := procs[procIdx].TicksLeft
 
 	for i := procIdx + 1; i < len(procs); i++ {
 		p := procs[i]
-		if p.state == Ready && p.ticksLeft < minTicksLeft {
-			minTicksLeft = p.ticksLeft
+		if p.State == Ready && p.TicksLeft < minTicksLeft {
+			minTicksLeft = p.TicksLeft
 			procIdx = i
 		}
 	}
@@ -39,5 +39,5 @@ func ShortestJobRemaining(procs []Proc, currProcIdx int) (int, bool) {
 }
 
 func isValidRunningProcIdx(procs []Proc, idx int) bool {
-	return 0 <= idx && idx < len(procs) && procs[idx].state == Running
+	return 0 <= idx && idx < len(procs) && procs[idx].State == Running
 }

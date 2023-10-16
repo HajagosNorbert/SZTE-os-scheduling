@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"io"
 	"log"
+	"os"
 
 	. "github.com/HajagosNorbert/SZTE-os-scheduling/internal/simulation"
 )
@@ -10,7 +13,15 @@ import (
 func main() {
 	algFlag := ReadFlag()
 	alg, algName := chooseAlg(algFlag)
-	procs := ReadProcs()
+	procsJsonInput, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		log.Fatalf("Could not read stdin until end of file.")
+	}
+	var procs []Proc
+	if err := json.Unmarshal(procsJsonInput, &procs); err != nil {
+		log.Fatalf("Input was not in the correct Json format, could not decode it. Generate the Json input with github.com/HajagosNorbert/SZTE-os-scheduling/cmd/proc-gen/main.go and feed it to this executable with ÁÁÁÁÁÁÁÁÁÁÁHHHHHH")
+	}
+	// procs := ReadProcs()
 	result := SimulateScheduling(procs, alg)
 
 	CreateResultReport(result, algName)
