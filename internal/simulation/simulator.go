@@ -83,7 +83,7 @@ func endSimulation(procs []Proc, result SimResult, tick int) SimResult {
 }
 
 func tickForIoOps(ioTasks []IoTaskRunning) {
-	for i := range ioTasks {
+	for i := 0; i < len(ioTasks); i++ {
 		task := &ioTasks[i]
 		task.ioOp.TicksLeft--
 		if task.ioOp.TicksLeft == 0 {
@@ -93,6 +93,7 @@ func tickForIoOps(ioTasks []IoTaskRunning) {
 				task.ownerProc.State = Terminated
 			}
 			ioTasks = removeTaskAt(ioTasks, i)
+			i--
 		}
 	}
 }

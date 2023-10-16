@@ -19,7 +19,7 @@ func main() {
 	}
 	var procs []Proc
 	if err := json.Unmarshal(procsJsonInput, &procs); err != nil {
-		log.Fatalf("Input was not in the correct Json format, could not decode it. Generate the Json input with github.com/HajagosNorbert/SZTE-os-scheduling/cmd/proc-gen/main.go and feed it to this executable with ÁÁÁÁÁÁÁÁÁÁÁHHHHHH")
+		log.Fatalf("Input was not in the correct Json format, could not decode it. Execute `make run` at the root of the project, or take a look at the makefile to know how to simulate.\n")
 	}
 	// procs := ReadProcs()
 	result := SimulateScheduling(procs, alg)
