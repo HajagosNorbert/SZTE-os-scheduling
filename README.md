@@ -7,6 +7,8 @@ I implement the
  - Scheduling algorithms, of which these are done
     - First Come First Serve
     - Shortest Job Remaining
+    - Round Robin
+    - Lottery
  - Methods to generate the processes and their blocking I/O operations probablistically
  - Reporting system that gives insights into the result of the simulation, with data like
     - context switches, idle ticks, latency, throughput
@@ -42,7 +44,13 @@ go run cmd/proc-gen/main.go | go run cmd/simulate/main.go
 ```
 Take a look at the `run-example` target of the [Makefile](./Makefile).
 
-Everything writes and reads from standard input and standard output, so if you are interested in the generated json input, one way is to do this:
+Everything writes and reads from standard input and standard output, so if you want to keep the generated json input, one way is to do this:
 ```sh
 go run cmd/proc-gen/main.go | tee input.json | go run cmd/simulate/main.go
+```
+
+Or with two steps like so:
+```sh
+go run cmd/proc-gen/main.go > input.json 
+go run cmd/simulate/main.go < input.json
 ```

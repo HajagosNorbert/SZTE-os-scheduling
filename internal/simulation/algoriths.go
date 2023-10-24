@@ -1,5 +1,7 @@
 package simulation
 
+import "math/rand"
+
 func FirstComeFirstServe(procs []Proc, currProcIdx int) (int, bool) {
 
 	if isValidRunningProcIdx(procs, currProcIdx) {
@@ -13,14 +15,57 @@ func FirstComeFirstServe(procs []Proc, currProcIdx int) (int, bool) {
 	return -1, false
 }
 
-// Only considers ticksLeft of the proc, not the ioOps
-func ShortestJobRemaining(procs []Proc, currProcIdx int) (int, bool) {
-	invalidProcIdx := -1
+func MakeLottery() func([]Proc, int) (int, bool) {
+	lottery := func(procs []Proc, currProcIdx int) (int, bool) {
+		totalTickets := 0
+		for i := 0; i < len(procs); i++ {
+			if procs[i].State == Ready || procs[i].State == Running {
+				totalTickets += procs[i].Priority
+			}
+		}
+		if totalTickets == 0 {
+			return -1, false
+		}
+
+		winnerTicket := rand.Intn(totalTickets) + 1
+		for i := 0; i < len(procs); i++ {
+			if procs[i].State == Ready || procs[i].State == Running {
+				if winnerTicket <= procs[i].Priority {
+					return i, true
+				}
+				winnerTicket -= procs[i].Priority
+			}
+		}
+		return -1, false
+	}
+
+	return lottery
+}
+func RoundRobin(procs []Proc, currProcIdx int) (int, bool) {
 	var procIdx int
 
 	if isValidRunningProcIdx(procs, currProcIdx) {
 		procIdx = currProcIdx
-	} else if firstReadyIdx, found := FirstComeFirstServe(procs, invalidProcIdx); found {
+	} else {
+		return FirstComeFirstServe(procs, currProcIdx)
+	}
+
+	for i := 1; i < len(procs); i++ {
+		procIdxCandidate := (procIdx + i) % len(procs)
+		if procs[procIdxCandidate].State == Ready {
+			return procIdxCandidate, true
+		}
+	}
+	return procIdx, true
+}
+
+// Only considers ticksLeft of the proc, not the ioOps
+func ShortestJobRemaining(procs []Proc, currProcIdx int) (int, bool) {
+	var procIdx int
+
+	if isValidRunningProcIdx(procs, currProcIdx) {
+		procIdx = currProcIdx
+	} else if firstReadyIdx, found := FirstComeFirstServe(procs, currProcIdx); found {
 		procIdx = firstReadyIdx
 	} else {
 		return -1, false

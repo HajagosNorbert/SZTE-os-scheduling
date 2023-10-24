@@ -27,8 +27,12 @@ func main() {
 	ioOpsPerProc := ioOpsCountPerProcNormalDist(opts.procTicks, float64(opts.stddev), float64(opts.mean), opts.procCount, r)
 
 	procs := make([]simulation.Proc, opts.procCount)
-	for i, ioOpCount := range ioOpsPerProc {
-		procs[i] = simulation.Proc{TicksLeft: opts.procTicks, TotalTicks: opts.procTicks, SpawnedAt: 0}
+
+	for i := 0; i < len(procs); i++ {
+		ioOpCount:= ioOpsPerProc[i]
+		priority := r.Intn(10)+1
+		userId := r.Intn(5)
+		procs[i] = simulation.Proc{TicksLeft: opts.procTicks, TotalTicks: opts.procTicks, SpawnedAt: 0, Priority: priority, UserId: userId}
 		procs[i].IoOps = genIoOps(ioOpCount, opts.procTicks, opts.maxIo, r)
 	}
 

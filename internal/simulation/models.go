@@ -17,6 +17,8 @@ type Proc struct {
 	SpawnedAt  int
 	TicksLeft  int
 	TotalTicks int
+	Priority   int
+	UserId     int
 	State      ProcState
 	IoOps      []IoOp
 }
@@ -40,8 +42,10 @@ const (
 type Algorithm = string
 
 const (
-	AlgFcfs Algorithm = "fcfs"
-	AlgSjr  Algorithm = "sjr"
+	AlgFcfs       Algorithm = "fcfs"
+	AlgSjr        Algorithm = "sjr"
+	AlgLottery    Algorithm = "lottery"
+	AlgRoundRobin Algorithm = "roundrobin"
 )
 
 type SimResult struct {
