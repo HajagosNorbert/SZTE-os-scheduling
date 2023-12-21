@@ -32,7 +32,7 @@ func main() {
 		ioOpCount:= ioOpsPerProc[i]
 		priority := r.Intn(10)+1
 		userId := r.Intn(5)
-		procs[i] = simulation.Proc{TicksLeft: opts.procTicks, TotalTicks: opts.procTicks, SpawnedAt: 0, Priority: priority, UserId: userId}
+		procs[i] = simulation.Proc{State: simulation.New,TicksLeft: opts.procTicks, TotalTicks: opts.procTicks, SpawnedAt: 0, Priority: priority, UserId: userId}
 		procs[i].IoOps = genIoOps(ioOpCount, opts.procTicks, opts.maxIo, r)
 	}
 

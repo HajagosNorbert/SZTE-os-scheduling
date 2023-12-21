@@ -29,14 +29,14 @@ type IoTaskRunning struct {
 }
 
 type IoOpState int
-type ProcState int
+type ProcState = string
 
 const (
-	New ProcState = iota
-	Ready
-	Running
-	Blocked
-	Terminated
+	New        ProcState = "new"
+	Ready      ProcState = "ready"
+	Running    ProcState = "running"
+	Blocked    ProcState = "blocked"
+	Terminated ProcState = "terminated"
 )
 
 type Algorithm = string
@@ -45,11 +45,12 @@ const (
 	AlgFcfs       Algorithm = "fcfs"
 	AlgSjr        Algorithm = "sjr"
 	AlgLottery    Algorithm = "lottery"
-	AlgRoundRobin Algorithm = "roundrobin"
+	AlgSrr        Algorithm = "srr"
+	AlgRoundRobin Algorithm = "rr"
 )
 
 type SimResult struct {
-	algName     Algorithm
+	algName     string
 	idleTicks   int
 	totalTicks  int
 	procResults []ProcResult
