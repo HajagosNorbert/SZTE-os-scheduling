@@ -1,7 +1,6 @@
 package simulation
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 	"sort"
@@ -105,16 +104,11 @@ func MakeSmartRoundRobin() func([]Proc, int) (int, bool) {
 	stq := 0
 
 	alg := func(procs []Proc, currProcIdx int) (int, bool) {
-		fmt.Printf("========================\n")
-		fmt.Printf("%+v\n\n", procs)
 		//proceed to the next proc when the current has blocked or terminated
 		if currProcIdx != -1 {
 			if procs[currProcIdx].State == Terminated || procs[currProcIdx].State == Blocked {
-				fmt.Printf("Terminated this %d\n", currProcIdx)
-				fmt.Printf("currCycleIdx was: %d, now: %d\n", currCycleIdx, currCycleIdx+1)
 				currCycleIdx++
 				if currCycleIdx >= len(cycleIds) {
-					fmt.Printf("New cycle from currently terminated proc")
 					newCycle = true
 				} else {
 					nextProcIdx := cycleIds[currCycleIdx]
@@ -138,13 +132,11 @@ func MakeSmartRoundRobin() func([]Proc, int) (int, bool) {
 			currCycleIdx = 0
 			stq = calculateSmartTimeQuantum(cycleTickLefts)
 			ticksForCurr = getTicksForNextProcInCycle(stq, procs[cycleIds[0]].TicksLeft)
-			fmt.Printf("stq: %d\n", stq)
 			ticksForCurr = QUANTUM
 			newCycle = false
 		}
 
 		nextProcIdx := cycleIds[currCycleIdx]
-		fmt.Printf("ticksForCurrent %d\n", ticksForCurr)
 		ticksForCurr--
 		//proceed to the next proc when the alg decided
 		//the current proc has ran for long enaugh
@@ -158,7 +150,6 @@ func MakeSmartRoundRobin() func([]Proc, int) (int, bool) {
 			}
 		}
 
-		fmt.Printf("returning %d\n", nextProcIdx)
 		return nextProcIdx, true
 	}
 	return alg
@@ -279,7 +270,6 @@ func MakeSmartRoundRobinOld() func([]Proc, int) (int, bool) {
 			} else {
 				ticksRemainingForCurrent = smartTimeQuanum
 			}
-			fmt.Printf("choosen: %+v ,New ticks remaining: %d\n", cycleProcs, ticksRemainingForCurrent)
 			return cycleProcs[currCycleProcIdx].originalIdx, true
 		}
 

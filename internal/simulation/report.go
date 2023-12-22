@@ -12,9 +12,6 @@ import (
 )
 
 func CreateResultReport(input []Proc, res SimResult, algLongName string) {
-	fmt.Printf("\n==========SIMULATION==========\n")
-	fmt.Printf("%+v\n\n", input)
-	fmt.Printf("%+v", res)
 	procXAxis := genProcXAxis(res)
 	res.algName = algLongName
 
@@ -50,7 +47,7 @@ func CreateResultReport(input []Proc, res SimResult, algLongName string) {
 	}}
 	totalIdlePie := charts.NewPie()
 	totalIdlePie.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title: "Idle ticks to total ticks",
+		Title: algLongName + ": Idle ticks to total ticks",
 		Subtitle: "CPU utilization: "+ fmt.Sprintf("%.2f", 100 * float64(res.totalTicks) / float64(res.idleTicks + res.totalTicks)) + "%" ,
 	}))
 	totalIdlePie.
@@ -65,10 +62,14 @@ func CreateResultReport(input []Proc, res SimResult, algLongName string) {
 
 
 	// chart
+	totalCtxSwitches := 0
+	for _, proc := range res.procResults {
+		totalCtxSwitches += proc.ctxSwitchCount
+	}
 	ctxSwitchItems := genCtxSwitches(res.procResults)
 	ctxSwitchBar := charts.NewBar()
 	ctxSwitchBar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{
-		Title:    "Context switches",
+		Title:    fmt.Sprintf("Context switches (%d in total)", totalCtxSwitches),
 		Subtitle: "Context switches for each procsess",
 	}))
 	ctxSwitchBar.SetXAxis(procXAxis).AddSeries("Context Switch", ctxSwitchItems)
@@ -81,9 +82,7 @@ func CreateResultReport(input []Proc, res SimResult, algLongName string) {
 		Subtitle: "Turn Around Time",
 	}))
 
-	avgXAxis := make([]string, 0)
-		avgXAxis = append(avgXAxis, "TAT")
-	avgBar.SetXAxis(avgXAxis).AddSeries("Averates", avgItems)
+	avgBar.SetXAxis([]string{"TAT", "Wait - time"}).AddSeries("Averages", avgItems) 
 
 	page.AddCharts(totalIdlePie, idleBar, relIdleBar, ctxSwitchBar, avgBar)
 	// Save the result to a file
@@ -92,6 +91,7 @@ func CreateResultReport(input []Proc, res SimResult, algLongName string) {
 		panic(err)
 	}
 	page.Render(f)
+	fmt.Println("Created output.html file with the report")
 }
 
 func genProcXAxis(res SimResult) []string {
@@ -130,15 +130,18 @@ func genCtxSwitches(procResults []ProcResult) []opts.BarData {
 
 func genAvgs(procResults []ProcResult) []opts.BarData {
 
-	items := make([]opts.BarData, 1)
 	//TAT
 	tatSum := 0
+	waitTimeSum := 0
 	for i := 0; i < len(procResults); i++ {
 		tat := procResults[i].idleTicks + procResults[i].totalTicks 
+		waitTimeSum += procResults[i].idleTicks
 		tatSum += tat
 		// ctxSwitch := procResults[i].ctxSwitchCount
 	}
+	waitTimeAvg := waitTimeSum / len(procResults)
 	tatAvg := tatSum / len(procResults)
-	items = append(items, opts.BarData{Value: tatAvg})
+
+	items := []opts.BarData{ {Value: tatAvg}, {Value: waitTimeAvg}}
 	return items
 }

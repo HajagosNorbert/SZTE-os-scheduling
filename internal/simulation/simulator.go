@@ -1,7 +1,6 @@
 package simulation
 
 import (
-	"fmt"
 	"sort"
 )
 
@@ -28,15 +27,11 @@ func SimulateScheduling(procs []Proc, SchedAlg func([]Proc, int) (int, bool)) Si
 		choosenProcIdx, found := SchedAlg(procs, procIdx)
 
 		if !found {
-			fmt.Printf("Idle\n")
 			tick++
 			tickForIoOps(ioTasksRunning)
 			result.idleTicks++
 			continue
-		} else {
-			fmt.Printf("choose proc with id, state and ticksLeft:%d %+v %d\n", choosenProcIdx, procs[choosenProcIdx].State, procs[choosenProcIdx].TicksLeft)
-		}
-
+		} 
 		contextSwitchHappened := choosenProcIdx != procIdx && proc != nil && proc.State == Running
 		if contextSwitchHappened {
 			proc.State = Ready
