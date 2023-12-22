@@ -12,6 +12,9 @@ import (
 )
 
 func CreateResultReport(input []Proc, res SimResult, algLongName string) {
+	fmt.Printf("\n==========SIMULATION==========\n")
+	fmt.Printf("%+v\n\n", input)
+	fmt.Printf("%+v", res)
 	procXAxis := genProcXAxis(res)
 	res.algName = algLongName
 

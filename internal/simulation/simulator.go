@@ -28,7 +28,7 @@ func SimulateScheduling(procs []Proc, SchedAlg func([]Proc, int) (int, bool)) Si
 		choosenProcIdx, found := SchedAlg(procs, procIdx)
 
 		if !found {
-			// fmt.Printf("Idle\n")
+			fmt.Printf("Idle\n")
 			tick++
 			tickForIoOps(ioTasksRunning)
 			result.idleTicks++

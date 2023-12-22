@@ -93,43 +93,91 @@ type procInCycle struct {
 	// IoOps       []IoOp
 }
 
-// Handle ticks left being the same
 func MakeSmartRoundRobin() func([]Proc, int) (int, bool) {
+	cycleIds := make([]int, 0)
+	//index into the cycleIds to get an idx for the procs slice
+	currCycleIdx := 0
+
+	ticksForCurr := 0
+	newCycle := true
+	QUANTUM := 4
+
+	alg := func(procs []Proc, currProcIdx int) (int, bool) {
+		fmt.Printf("========================\n")
+		fmt.Printf("%+v\n\n", procs)
+		//proceed to the next proc when the current has blocked or terminated
+		if currProcIdx != -1 {
+			if procs[currProcIdx].State == Terminated || procs[currProcIdx].State == Blocked {
+				fmt.Printf("Terminated this %d\n", currProcIdx)
+				fmt.Printf("currCycleIdx was: %d, now: %d\n", currCycleIdx, currCycleIdx+1)
+				currCycleIdx++
+				ticksForCurr = QUANTUM
+				if currCycleIdx == len(cycleIds) {
+					fmt.Printf("New cycle from currently terminated proc")
+					newCycle = true
+				}
+			}
+		}
+
+		if newCycle {
+			cycleIds = cycleIds[:0]
+			for i := 0; i < len(procs); i++ {
+				if procs[i].State == Ready || procs[i].State == Running {
+					cycleIds = append(cycleIds, i)
+				}
+			}
+			if len(cycleIds) == 0 {
+				return -1, false
+			}
+			currCycleIdx = 0
+			ticksForCurr = QUANTUM
+			newCycle = false
+		}
+
+		nextProcIdx := cycleIds[currCycleIdx]
+		fmt.Printf("ticksForCurrent %d\n", ticksForCurr)
+		ticksForCurr--
+		//proceed to the next proc when the alg decided
+		//the current proc has ran for long enaugh
+		currCycleProcDone := ticksForCurr == 0
+		if currCycleProcDone {
+			currCycleIdx++
+			ticksForCurr = QUANTUM
+			if currCycleIdx == len(cycleIds) {
+				newCycle = true
+			}
+		}
+
+		fmt.Printf("returning %d\n", nextProcIdx)
+		return nextProcIdx, true
+	}
+	return alg
+}
+
+func MakeSmartRoundRobinOld() func([]Proc, int) (int, bool) {
 	ticksRemainingForCurrent := 0
 	currCycleProcIdx := -1
 	smartTimeQuanum := 0
 	var cycleProcs []procInCycle
 	insideCycle := false
 	alg := func(procs []Proc, currProcIdx int) (int, bool) {
-		// if nem running már a currProcIdx:q
 
 		if currProcIdx != -1 {
 			if procs[currProcIdx].State == Blocked || procs[currProcIdx].State == Terminated {
 				ticksRemainingForCurrent = 0
-				if currCycleProcIdx < len(cycleProcs) -1 {
-					fmt.Printf("currCycleProcIdx: %+v\n", currCycleProcIdx)
-					fmt.Printf("cycleProcs: %+v\n", cycleProcs)
-					fmt.Printf("%+v == %+v \n", cycleProcs[currCycleProcIdx], currProcIdx)
+				if currCycleProcIdx < len(cycleProcs)-1 {
 					cycleProcs[currCycleProcIdx] = cycleProcs[len(cycleProcs)-1]
 					cycleProcs = cycleProcs[0 : len(cycleProcs)-1]
 					currCycleProcIdx--
 				}
 			}
 		}
-
 		endOfCycle := insideCycle && ticksRemainingForCurrent == 0 && currCycleProcIdx <= len(cycleProcs)-1
-		// fmt.Printf("%+v", ticksRemainingForCurrnt)
-		//cycle never ends
 		if endOfCycle {
-			// fmt.Printf("%+v\n", currProcIdx)
-			fmt.Printf("End of cycle\n")
 			insideCycle = false
-		} else {
-			fmt.Printf("Not End of cycle\n")
 		}
 		if !insideCycle {
 			//one new cycle
-			fmt.Printf("new cycle with proc: %+v\n", procs)
 			if isValidRunningProcIdx(procs, currProcIdx) {
 				procs[currProcIdx].State = Ready
 			}
@@ -143,15 +191,11 @@ func MakeSmartRoundRobin() func([]Proc, int) (int, bool) {
 				}
 			}
 			// cycleProcs = cycleProcs[:readyCount]
-			fmt.Printf("cycleProcs: %+v\n", cycleProcs)
 			sort.Slice(cycleProcs, func(i, j int) bool {
 				return cycleProcs[i].ticksLeft < cycleProcs[j].ticksLeft
 			})
 
-			fmt.Printf("1 cycleProcs: %+v\n", cycleProcs)
 			if len(cycleProcs) == 0 {
-				// fmt.Printf("ended with procs:\n%+v\n\n", procs)
-				fmt.Printf("ended with procs:\n%+v\n\n", procs)
 				return -1, false
 			}
 
@@ -159,20 +203,16 @@ func MakeSmartRoundRobin() func([]Proc, int) (int, bool) {
 			if len(cycleProcs) == 1 {
 				currCycleProcIdx = 0
 				ticksRemainingForCurrent = cycleProcs[currCycleProcIdx].ticksLeft
-				fmt.Printf("returning this proc: %+v\n\n", procs[cycleProcs[currCycleProcIdx].originalIdx])
 				return cycleProcs[currCycleProcIdx].originalIdx, true
 			} else {
 				currCycleProcIdx = -1
 			}
 
-			fmt.Printf("2 cyclaProcs: %+v\n", cycleProcs)
 			ticksLeftSum := 0
 			for i := 0; i < len(cycleProcs)-1; i++ {
-				// fmt.Printf("%+v\n", cycleProcs)
 				ticksLeftSum += cycleProcs[i+1].ticksLeft - cycleProcs[i].ticksLeft
 			}
 
-			// fmt.Printf("%+v\n", ticksLeftSum)
 			smartTimeQuanum = int(math.Round(float64(ticksLeftSum) / (float64(len(procs)) - 1.0)))
 			if smartTimeQuanum == 0 {
 				assignedTicks := int(cycleProcs[0].ticksLeft / 8)
@@ -182,33 +222,23 @@ func MakeSmartRoundRobin() func([]Proc, int) (int, bool) {
 					smartTimeQuanum = assignedTicks
 				}
 			}
-			fmt.Printf("STQ: %+v\n", smartTimeQuanum)
-			// println(currCycleProcIdx)
 		}
-
 		if ticksRemainingForCurrent > 0 {
 			ticksRemainingForCurrent--
-			fmt.Printf("returning this proc: %+v\n\n", procs[currProcIdx])
 			return currProcIdx, true
 		}
-		//MI VAN HA ÚT KÖZBEN BLOKKOL / TERMINÁL? El kell távolítani a queue -ból azt.
 		if currCycleProcIdx < len(cycleProcs)-1 {
 			currCycleProcIdx++
 			delta := smartTimeQuanum / 2
 			if cycleProcs[currCycleProcIdx].ticksLeft <= smartTimeQuanum+delta {
-				ticksRemainingForCurrent = cycleProcs[currCycleProcIdx].ticksLeft - 1
-				fmt.Printf("new ticks remaining: %+v\n", ticksRemainingForCurrent)
-				fmt.Printf("currCycleProcIdx: %+v\n", currCycleProcIdx)
+				ticksRemainingForCurrent = cycleProcs[currCycleProcIdx].ticksLeft
 			} else {
-				ticksRemainingForCurrent = smartTimeQuanum - 1
+				ticksRemainingForCurrent = smartTimeQuanum
 			}
-			// fmt.Printf("from if: %+v for %d, ", ticksRemainingForCurrent, cycleProcs[currCycleProcIdx].originalIdx)
-			fmt.Printf("returning this proc: %+v\n\n", procs[cycleProcs[currCycleProcIdx].originalIdx])
+			fmt.Printf("choosen: %+v ,New ticks remaining: %d\n", cycleProcs, ticksRemainingForCurrent)
 			return cycleProcs[currCycleProcIdx].originalIdx, true
 		}
 
-		// fmt.Printf("nope\n")
-		fmt.Printf("not returning any from this proc: %+v\n\n", procs)
 		return -1, false
 	}
 	return alg
