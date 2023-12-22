@@ -4,7 +4,7 @@ run: build
 
 .PHONY: srr
 srr: build
-	cat input.json | ./bin/simulate -a srr 
+	cat input1.json | ./bin/simulate -a srr 
 
 .PHONY: srr
 srr-test: build

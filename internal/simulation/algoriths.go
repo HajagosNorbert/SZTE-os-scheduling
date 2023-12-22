@@ -101,6 +101,8 @@ func MakeSmartRoundRobin() func([]Proc, int) (int, bool) {
 	ticksForCurr := 0
 	newCycle := true
 	QUANTUM := 4
+	//Smart Time Quantum
+	stq := 0
 
 	alg := func(procs []Proc, currProcIdx int) (int, bool) {
 		fmt.Printf("========================\n")
@@ -111,25 +113,32 @@ func MakeSmartRoundRobin() func([]Proc, int) (int, bool) {
 				fmt.Printf("Terminated this %d\n", currProcIdx)
 				fmt.Printf("currCycleIdx was: %d, now: %d\n", currCycleIdx, currCycleIdx+1)
 				currCycleIdx++
-				ticksForCurr = QUANTUM
-				if currCycleIdx == len(cycleIds) {
+				if currCycleIdx >= len(cycleIds) {
 					fmt.Printf("New cycle from currently terminated proc")
 					newCycle = true
+				} else {
+					nextProcIdx := cycleIds[currCycleIdx]
+					ticksForCurr = getTicksForNextProcInCycle(stq, procs[nextProcIdx].TicksLeft)
 				}
 			}
 		}
 
 		if newCycle {
 			cycleIds = cycleIds[:0]
+			cycleTickLefts := make([]int, 0)
 			for i := 0; i < len(procs); i++ {
 				if procs[i].State == Ready || procs[i].State == Running {
 					cycleIds = append(cycleIds, i)
+					cycleTickLefts = append(cycleTickLefts, procs[i].TicksLeft)
 				}
 			}
 			if len(cycleIds) == 0 {
 				return -1, false
 			}
 			currCycleIdx = 0
+			stq = calculateSmartTimeQuantum(cycleTickLefts)
+			ticksForCurr = getTicksForNextProcInCycle(stq, procs[cycleIds[0]].TicksLeft)
+			fmt.Printf("stq: %d\n", stq)
 			ticksForCurr = QUANTUM
 			newCycle = false
 		}
@@ -142,9 +151,10 @@ func MakeSmartRoundRobin() func([]Proc, int) (int, bool) {
 		currCycleProcDone := ticksForCurr == 0
 		if currCycleProcDone {
 			currCycleIdx++
-			ticksForCurr = QUANTUM
 			if currCycleIdx == len(cycleIds) {
 				newCycle = true
+			} else {
+				ticksForCurr = getTicksForNextProcInCycle(stq, procs[cycleIds[currCycleIdx]].TicksLeft)
 			}
 		}
 
@@ -152,6 +162,40 @@ func MakeSmartRoundRobin() func([]Proc, int) (int, bool) {
 		return nextProcIdx, true
 	}
 	return alg
+}
+
+func getTicksForNextProcInCycle(smartTimeQuanum int, ticks int) int {
+	delta := smartTimeQuanum / 2
+	if ticks <= smartTimeQuanum+delta {
+		return ticks
+	} else {
+		return smartTimeQuanum
+	}
+
+}
+
+// ticksLeft is > 0
+func calculateSmartTimeQuantum(ticksLeft []int) int {
+	smartTimeQuanum := 0
+	if len(ticksLeft) > 1 {
+		sort.Ints(ticksLeft)
+		ticksLeftSum := 0
+		for i := 0; i < len(ticksLeft)-1; i++ {
+			ticksLeftSum += ticksLeft[i+1] - ticksLeft[i]
+		}
+		smartTimeQuanum = int(math.Round(float64(ticksLeftSum) / (float64(len(ticksLeft)) - 1.0)))
+	}
+
+	if smartTimeQuanum == 0 {
+		assignedTicks := int(ticksLeft[0] / 4)
+		if assignedTicks < 1 {
+			smartTimeQuanum = ticksLeft[0]
+		} else {
+			smartTimeQuanum = assignedTicks
+		}
+	}
+
+	return smartTimeQuanum
 }
 
 func MakeSmartRoundRobinOld() func([]Proc, int) (int, bool) {
